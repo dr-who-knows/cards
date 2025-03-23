@@ -2,39 +2,79 @@
 
 {% block title %}Canvas Mode - Language Cards{% endblock %}
 
+{% block body_class %}canvas-fullscreen{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
 {% block content %}
-<div class="canvas-container">
-    <div class="canvas-controls">
-        <button id="zoomIn" class="btn">Zoom In</button>
-        <button id="zoomOut" class="btn">Zoom Out</button>
-        <button id="resetView" class="btn">Reset View</button>
+<div class="canvas-fullscreen-wrapper">
+    <div class="canvas-sidebar">
+        <div class="sidebar-header">
+            <h3>Canvas Mode</h3>
+            <a href="{% url 'home' %}" class="btn btn-small tooltip" data-tooltip="Back to home">
+                ←
+            </a>
+        </div>
+        
+        <div class="sidebar-controls">
+            <h4>Zoom Controls</h4>
+            <button id="zoomIn" class="btn btn-control tooltip" data-tooltip="Zoom in">
+                <span>+</span>
+                <span class="icon-text">Zoom In</span>
+            </button>
+            <button id="zoomOut" class="btn btn-control tooltip" data-tooltip="Zoom out">
+                <span>−</span>
+                <span class="icon-text">Zoom Out</span>
+            </button>
+            <button id="resetView" class="btn btn-control tooltip" data-tooltip="Reset view">
+                <span>↺</span>
+                <span class="icon-text">Reset</span>
+            </button>
+        </div>
+        
+        <div class="sidebar-info">
+            <h4>Help</h4>
+            <p>• Drag cards to position them</p>
+            <p>• Double-click cards to flip them</p>
+            <p>• Use mouse wheel to zoom</p>
+            <p>• Click and drag on empty space to pan</p>
+        </div>
+        
+        {% if not cards %}
+        <div class="sidebar-empty">
+            <p>You haven't added any cards yet.</p>
+            <a href="{% url 'add_card' %}" class="btn tooltip" data-tooltip="Add card">+</a>
+        </div>
+        {% endif %}
     </div>
-    
-    {% if cards %}
-        <div id="canvas" class="infinite-canvas">
-            {% for card in cards %}
-                <div class="canvas-card" data-id="{{ card.id }}" style="transform: translate({{ card.x_position }}px, {{ card.y_position }}px);">
-                    <div class="card-content">
-                        <div class="card-front">
-                            <h3>{{ card.original_word }}</h3>
-                        </div>
-                        <div class="card-back">
-                            <p>{{ card.translation }}</p>
+
+    <div class="canvas-container">
+        {% if cards %}
+            <div id="canvas" class="infinite-canvas">
+                {% for card in cards %}
+                    <div class="canvas-card" data-id="{{ card.id }}" 
+                         data-x="{{ card.x_position|default:0 }}"
+                         data-y="{{ card.y_position|default:0 }}">
+                        <div class="card-content">
+                            <div class="card-front">
+                                <h3>{{ card.original_word }}</h3>
+                            </div>
+                            <div class="card-back">
+                                <p>{{ card.translation }}</p>
+                            </div>
                         </div>
                     </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="empty-canvas">
+                <div class="empty-message">
+                    <h3>Your canvas is empty</h3>
+                    <p>Add cards to start organizing your vocabulary</p>
                 </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="empty-state">
-            <p>You haven't added any cards yet.</p>
-            <a href="{% url 'add_card' %}" class="btn">Add Your First Card</a>
-        </div>
-    {% endif %}
-    
-    <div class="canvas-info">
-        <p>Drag cards to organize them on the canvas. Click cards to flip them.</p>
-        <p>Use mouse wheel to zoom in/out or use the zoom controls.</p>
+            </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}
@@ -56,13 +96,22 @@
         let endPoint = { x: 0, y: 0 };
         let translatePos = { x: 0, y: 0 };
         
+        const containerWidth = canvas.clientWidth;
+        const containerHeight = canvas.clientHeight;
+        
+        // Initialize - center the canvas
+        centerCanvas();
+        
         // Initialize card positions from database or center them if new
         cards.forEach(card => {
-            const style = window.getComputedStyle(card);
-            const transform = style.transform;
+            const cardX = parseInt(card.dataset.x) || 0;
+            const cardY = parseInt(card.dataset.y) || 0;
             
-            // If the card doesn't have a stored position, center it
-            if (transform === 'none' || transform === '') {
+            // Apply initial position from data attributes
+            card.style.transform = `translate(${cardX}px, ${cardY}px)`;
+            
+            // If the card doesn't have a stored position, place it randomly near center
+            if (cardX === 0 && cardY === 0) {
                 const randomX = Math.floor(Math.random() * 400) - 200;
                 const randomY = Math.floor(Math.random() * 400) - 200;
                 card.style.transform = `translate(${randomX}px, ${randomY}px)`;
@@ -71,47 +120,117 @@
             // Make cards draggable
             makeDraggable(card);
             
-            // Make cards flippable
+            // Make cards flippable with double-click
             card.addEventListener('dblclick', function() {
                 this.classList.toggle('flipped');
             });
         });
         
+        // Center the canvas on initial load
+        function centerCanvas() {
+            // Get the container dimensions
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Get the canvas dimensions
+            const canvasWidth = canvas.offsetWidth;
+            const canvasHeight = canvas.offsetHeight;
+            
+            console.log('Container Dimensions:', containerWidth, containerHeight);
+            console.log('Canvas Dimensions:', canvasWidth, canvasHeight);
+            
+            // Center the canvas in the container with negative coordinates (move left/up)
+            translatePos = { 
+                x: (containerWidth - canvasWidth * scale) / 2,
+                y: (containerHeight - canvasHeight * scale) / 2
+            };
+            
+            // Apply the centering
+            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+        }
+        
         // Zoom functionality
         function setCanvasScale(newScale) {
-            scale = Math.max(0.1, Math.min(5, newScale)); // Limit scale between 0.1 and 5
+            // Get the container dimensions
+            const container = document.querySelector('.canvas-container');
+            const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
+            
+            // Calculate zoom center (relative to the translatePos)
+            const zoomCenterX = containerWidth / 2 - translatePos.x;
+            const zoomCenterY = containerHeight / 2 - translatePos.y;
+            
+            // Store the old scale
+            const oldScale = scale;
+            
+            // Set the new scale with limits
+            scale = Math.max(0.1, Math.min(5, newScale));
+            
+            // Calculate new position to zoom toward the center of the screen
+            const scaleFactor = scale / oldScale;
+            translatePos.x = translatePos.x - zoomCenterX * (scaleFactor - 1);
+            translatePos.y = translatePos.y - zoomCenterY * (scaleFactor - 1);
+            
+            // Apply the transformation
             canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
         }
         
         zoomInBtn.addEventListener('click', function() {
-            setCanvasScale(scale + 0.1);
+            setCanvasScale(scale + 0.2);
         });
         
         zoomOutBtn.addEventListener('click', function() {
-            setCanvasScale(scale - 0.1);
+            setCanvasScale(scale - 0.2);
         });
         
         resetViewBtn.addEventListener('click', function() {
             scale = 1;
-            translatePos = { x: 0, y: 0 };
-            canvas.style.transform = `translate(0px, 0px) scale(1)`;
+            centerCanvas();
         });
         
         // Mouse wheel zoom
         canvas.addEventListener('wheel', function(e) {
             e.preventDefault();
+            
+            // Calculate zoom center (mouse position relative to canvas)
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left - translatePos.x;
+            const mouseY = e.clientY - rect.top - translatePos.y;
+            
+            // Store the old scale
+            const oldScale = scale;
+            
+            // Calculate the new scale
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            setCanvasScale(scale + delta);
+            scale = Math.max(0.1, Math.min(5, scale + delta));
+            
+            // Calculate new position to zoom toward mouse
+            const scaleFactor = scale / oldScale;
+            translatePos.x = translatePos.x - mouseX * (scaleFactor - 1);
+            translatePos.y = translatePos.y - mouseY * (scaleFactor - 1);
+            
+            // Apply the transformation
+            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
         });
         
-        // Panning functionality
-        canvas.addEventListener('mousedown', function(e) {
-            // Only pan if clicking on the canvas, not on a card
-            if (e.target === canvas || e.target.closest('.canvas-container') === canvas) {
+        // Panning functionality with right-click or middle-click or left-click on empty space
+        document.querySelector('.canvas-container').addEventListener('mousedown', function(e) {
+            // Only initiate panning if:
+            // 1. Using right-click (button 2) or middle-click (button 1), OR
+            // 2. Left-click (button 0) directly on the canvas container (not on a card)
+            const isClickOnCard = e.target.closest('.canvas-card') !== null;
+            
+            if (e.button === 2 || e.button === 1 || (e.button === 0 && !isClickOnCard)) {
                 e.preventDefault();
                 panning = true;
                 startPoint = { x: e.clientX, y: e.clientY };
             }
+        });
+        
+        // Prevent context menu on right-click for the entire canvas container
+        document.querySelector('.canvas-container').addEventListener('contextmenu', function(e) {
+            e.preventDefault();
         });
         
         document.addEventListener('mousemove', function(e) {
@@ -140,7 +259,10 @@
             element.addEventListener('mousedown', dragMouseDown);
             
             function dragMouseDown(e) {
+                // Only allow left-click for dragging
+                if (e.button !== 0) return;
                 e.preventDefault();
+                e.stopPropagation(); // Stop event propagation to prevent canvas panning
                 isDragging = true;
                 
                 // Get the initial mouse cursor position
@@ -165,11 +287,20 @@
                 const adjustedPos1 = pos1 / scale;
                 const adjustedPos2 = pos2 / scale;
                 
+                // Get current transform or default to 0,0
+                let currentX = 0;
+                let currentY = 0;
+                
+                const transform = window.getComputedStyle(element).transform;
+                if (transform && transform !== 'none') {
+                    const matrix = new DOMMatrix(transform);
+                    currentX = matrix.e;
+                    currentY = matrix.f;
+                }
+                
                 // Set the element's new position
-                const style = window.getComputedStyle(element);
-                const transform = new DOMMatrix(style.transform);
-                const newX = transform.e - adjustedPos1;
-                const newY = transform.f - adjustedPos2;
+                const newX = currentX - adjustedPos1;
+                const newY = currentY - adjustedPos2;
                 
                 element.style.transform = `translate(${newX}px, ${newY}px)`;
             }
@@ -181,11 +312,18 @@
                 
                 if (isDragging) {
                     // Save position to database
-                    const style = window.getComputedStyle(element);
-                    const transform = new DOMMatrix(style.transform);
-                    const cardId = element.dataset.id;
+                    const transform = window.getComputedStyle(element).transform;
+                    let posX = 0;
+                    let posY = 0;
                     
-                    saveCardPosition(cardId, transform.e, transform.f);
+                    if (transform && transform !== 'none') {
+                        const matrix = new DOMMatrix(transform);
+                        posX = matrix.e;
+                        posY = matrix.f;
+                    }
+                    
+                    const cardId = element.dataset.id;
+                    saveCardPosition(cardId, posX, posY);
                 }
                 
                 isDragging = false;
@@ -215,6 +353,12 @@
                 console.error('Error saving card position:', error);
             });
         }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            // Recenter the canvas when window is resized
+            centerCanvas();
+        });
     });
 </script>
 {% endblock %} 

@@ -7,7 +7,8 @@
     {% load static %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
-<body>
+<body {% block body_class %}{% endblock %}>
+    {% block header %}
     <header>
         <div class="logo">
             <h1>Language Cards</h1>
@@ -22,14 +23,17 @@
             </ul>
         </nav>
     </header>
+    {% endblock %}
     
     <main>
         {% block content %}{% endblock %}
     </main>
     
+    {% block footer %}
     <footer>
         <p>&copy; {% now "Y" %} Language Cards - Your memorization tool</p>
     </footer>
+    {% endblock %}
     
     {% block scripts %}{% endblock %}
 </body>

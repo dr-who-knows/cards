@@ -32,6 +32,20 @@ body {
     flex-direction: column;
 }
 
+body.canvas-fullscreen {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+body.canvas-fullscreen main {
+    padding: 0;
+    margin: 0;
+    max-width: none;
+    width: 100%;
+    height: 100vh;
+}
+
 a {
     text-decoration: none;
     color: var(--primary-color);
@@ -368,56 +382,223 @@ footer {
     margin-top: 2rem;
 }
 
-/* Canvas Mode */
-.canvas-container {
+/* Canvas Mode - Updated for fullscreen */
+.canvas-fullscreen-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    display: flex;
+    background-color: var(--light-color);
+}
+
+.canvas-sidebar {
+    width: 60px;
+    height: 100%;
+    background-color: var(--primary-dark);
+    color: white;
+    padding: 0.5rem;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 200px);
-    position: relative;
-    overflow: hidden;
-}
-
-.canvas-controls {
-    display: flex;
-    gap: 1rem;
-    padding: 1rem;
-    background-color: white;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
     z-index: 10;
+    align-items: center;
 }
 
-.infinite-canvas {
+.sidebar-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    width: 100%;
+}
+
+.sidebar-header h3 {
+    display: none;
+}
+
+.btn-small {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.2);
+    margin-bottom: 0.5rem;
+}
+
+.btn-small:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.sidebar-controls {
+    margin-bottom: 1.5rem;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.sidebar-controls h4, .sidebar-info h4 {
+    display: none;
+}
+
+.btn-control {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    margin-bottom: 0.8rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-control:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn-control span {
+    display: inline-block;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.btn-control .icon-text {
+    display: none;
+}
+
+.sidebar-info {
+    display: none;
+}
+
+.sidebar-empty {
+    margin-top: 2rem;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    text-align: center;
+    width: 100%;
+}
+
+.sidebar-empty p {
+    display: none;
+}
+
+.sidebar-empty .btn {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.canvas-container {
     flex: 1;
     position: relative;
     overflow: hidden;
-    background-color: var(--gray-light);
+    background-color: white;
+    padding: 0;
+    margin: 0;
+}
+
+.infinite-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    background-color: white;
     transform-origin: center;
     transition: transform 0.05s ease;
+    padding: 0;
+    margin: 0;
 }
 
-.canvas-card {
+/* Tooltip for sidebar buttons */
+.tooltip {
+    position: relative;
+}
+
+.tooltip:hover::after {
+    content: attr(data-tooltip);
     position: absolute;
-    width: 250px;
-    height: 180px;
-    cursor: grab;
-    z-index: 1;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 0.3rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    margin-left: 10px;
+    z-index: 100;
 }
 
-.canvas-card:active {
-    cursor: grabbing;
+/* Responsive Design for Canvas */
+@media (max-width: 768px) {
+    .canvas-fullscreen-wrapper {
+        flex-direction: column;
+    }
+    
+    .canvas-sidebar {
+        width: 100%;
+        height: auto;
+        flex-direction: row;
+        justify-content: space-around;
+        padding: 0.5rem;
+    }
+    
+    .sidebar-header {
+        width: auto;
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+        margin-right: 1rem;
+    }
+    
+    .sidebar-controls {
+        width: auto;
+        flex-direction: row;
+        margin-bottom: 0;
+    }
+    
+    .btn-control {
+        margin-right: 0.8rem;
+        margin-bottom: 0;
+    }
+    
+    .canvas-container {
+        height: 100%;
+    }
+    
+    .tooltip:hover::after {
+        top: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        margin-left: 0;
+        margin-top: 10px;
+    }
 }
 
-.canvas-card.flipped .card-content {
-    transform: rotateY(180deg);
-}
-
-.canvas-info {
-    padding: 1rem;
-    text-align: center;
-    color: var(--gray-dark);
-    background-color: white;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 10;
+@media (min-width: 769px) {
+    .canvas-container {
+        height: 100%;
+    }
 }
 
 /* Responsive Design */
@@ -452,4 +633,44 @@ footer {
     .canvas-container {
         height: calc(100vh - 250px);
     }
+}
+
+/* Empty Canvas */
+.empty-canvas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.empty-message {
+    text-align: center;
+    color: var(--gray-dark);
+    background-color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.empty-message h3 {
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+/* Canvas Cards */
+.canvas-card {
+    position: absolute;
+    width: 250px;
+    height: 180px;
+    cursor: grab;
+    z-index: 1;
+}
+
+.canvas-card:active {
+    cursor: grabbing;
+}
+
+.canvas-card.flipped .card-content {
+    transform: rotateY(180deg);
 } 

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Language Cards{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Language Cards</h1>
+        </div>
+        <nav>
+            <ul>
+                <li><a href="{% url 'home' %}">Home</a></li>
+                <li><a href="{% url 'add_card' %}">Add Card</a></li>
+                <li><a href="{% url 'cards_list' %}">My Cards</a></li>
+                <li><a href="{% url 'tour_mode' %}">Tour Mode</a></li>
+                <li><a href="{% url 'canvas_mode' %}">Canvas Mode</a></li>
+            </ul>
+        </nav>
+    </header>
+    
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer>
+        <p>&copy; {% now "Y" %} Language Cards - Your memorization tool</p>
+    </footer>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

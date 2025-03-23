@@ -1,0 +1,220 @@
+{% extends 'flashcards/base.html' %}
+
+{% block title %}Canvas Mode - Language Cards{% endblock %}
+
+{% block content %}
+<div class="canvas-container">
+    <div class="canvas-controls">
+        <button id="zoomIn" class="btn">Zoom In</button>
+        <button id="zoomOut" class="btn">Zoom Out</button>
+        <button id="resetView" class="btn">Reset View</button>
+    </div>
+    
+    {% if cards %}
+        <div id="canvas" class="infinite-canvas">
+            {% for card in cards %}
+                <div class="canvas-card" data-id="{{ card.id }}" style="transform: translate({{ card.x_position }}px, {{ card.y_position }}px);">
+                    <div class="card-content">
+                        <div class="card-front">
+                            <h3>{{ card.original_word }}</h3>
+                        </div>
+                        <div class="card-back">
+                            <p>{{ card.translation }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>You haven't added any cards yet.</p>
+            <a href="{% url 'add_card' %}" class="btn">Add Your First Card</a>
+        </div>
+    {% endif %}
+    
+    <div class="canvas-info">
+        <p>Drag cards to organize them on the canvas. Click cards to flip them.</p>
+        <p>Use mouse wheel to zoom in/out or use the zoom controls.</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const canvas = document.getElementById('canvas');
+        if (!canvas) return;
+        
+        const cards = document.querySelectorAll('.canvas-card');
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const resetViewBtn = document.getElementById('resetView');
+        
+        let scale = 1;
+        let panning = false;
+        let startPoint = { x: 0, y: 0 };
+        let endPoint = { x: 0, y: 0 };
+        let translatePos = { x: 0, y: 0 };
+        
+        // Initialize card positions from database or center them if new
+        cards.forEach(card => {
+            const style = window.getComputedStyle(card);
+            const transform = style.transform;
+            
+            // If the card doesn't have a stored position, center it
+            if (transform === 'none' || transform === '') {
+                const randomX = Math.floor(Math.random() * 400) - 200;
+                const randomY = Math.floor(Math.random() * 400) - 200;
+                card.style.transform = `translate(${randomX}px, ${randomY}px)`;
+            }
+            
+            // Make cards draggable
+            makeDraggable(card);
+            
+            // Make cards flippable
+            card.addEventListener('dblclick', function() {
+                this.classList.toggle('flipped');
+            });
+        });
+        
+        // Zoom functionality
+        function setCanvasScale(newScale) {
+            scale = Math.max(0.1, Math.min(5, newScale)); // Limit scale between 0.1 and 5
+            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+        }
+        
+        zoomInBtn.addEventListener('click', function() {
+            setCanvasScale(scale + 0.1);
+        });
+        
+        zoomOutBtn.addEventListener('click', function() {
+            setCanvasScale(scale - 0.1);
+        });
+        
+        resetViewBtn.addEventListener('click', function() {
+            scale = 1;
+            translatePos = { x: 0, y: 0 };
+            canvas.style.transform = `translate(0px, 0px) scale(1)`;
+        });
+        
+        // Mouse wheel zoom
+        canvas.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            setCanvasScale(scale + delta);
+        });
+        
+        // Panning functionality
+        canvas.addEventListener('mousedown', function(e) {
+            // Only pan if clicking on the canvas, not on a card
+            if (e.target === canvas || e.target.closest('.canvas-container') === canvas) {
+                e.preventDefault();
+                panning = true;
+                startPoint = { x: e.clientX, y: e.clientY };
+            }
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!panning) return;
+            e.preventDefault();
+            
+            endPoint = { x: e.clientX, y: e.clientY };
+            translatePos = {
+                x: translatePos.x + (endPoint.x - startPoint.x),
+                y: translatePos.y + (endPoint.y - startPoint.y)
+            };
+            
+            startPoint = { x: e.clientX, y: e.clientY };
+            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+        });
+        
+        document.addEventListener('mouseup', function() {
+            panning = false;
+        });
+        
+        // Make an element draggable
+        function makeDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            let isDragging = false;
+            
+            element.addEventListener('mousedown', dragMouseDown);
+            
+            function dragMouseDown(e) {
+                e.preventDefault();
+                isDragging = true;
+                
+                // Get the initial mouse cursor position
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                document.addEventListener('mousemove', elementDrag);
+                document.addEventListener('mouseup', closeDragElement);
+            }
+            
+            function elementDrag(e) {
+                if (!isDragging) return;
+                e.preventDefault();
+                
+                // Calculate the new cursor position
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                // Adjust for canvas scale
+                const adjustedPos1 = pos1 / scale;
+                const adjustedPos2 = pos2 / scale;
+                
+                // Set the element's new position
+                const style = window.getComputedStyle(element);
+                const transform = new DOMMatrix(style.transform);
+                const newX = transform.e - adjustedPos1;
+                const newY = transform.f - adjustedPos2;
+                
+                element.style.transform = `translate(${newX}px, ${newY}px)`;
+            }
+            
+            function closeDragElement() {
+                // Stop moving when mouse button is released
+                document.removeEventListener('mousemove', elementDrag);
+                document.removeEventListener('mouseup', closeDragElement);
+                
+                if (isDragging) {
+                    // Save position to database
+                    const style = window.getComputedStyle(element);
+                    const transform = new DOMMatrix(style.transform);
+                    const cardId = element.dataset.id;
+                    
+                    saveCardPosition(cardId, transform.e, transform.f);
+                }
+                
+                isDragging = false;
+            }
+        }
+        
+        // Save card position to the database
+        function saveCardPosition(cardId, x, y) {
+            fetch('{% url "update_card_position" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    id: cardId,
+                    x: Math.round(x),
+                    y: Math.round(y)
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    console.error('Failed to save card position');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving card position:', error);
+            });
+        }
+    });
+</script>
+{% endblock %} 

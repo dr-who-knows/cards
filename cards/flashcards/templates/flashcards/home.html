@@ -1,0 +1,32 @@
+{% extends 'flashcards/base.html' %}
+
+{% block title %}Home - Language Cards{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="hero-content">
+        <h2>Welcome to Language Cards</h2>
+        <p>Your personal tool for memorizing foreign language vocabulary</p>
+        
+        <div class="features">
+            <div class="feature-box">
+                <h3>Create Cards</h3>
+                <p>Add words and their translations to create your personalized collection of vocabulary cards.</p>
+                <a href="{% url 'add_card' %}" class="btn">Start Adding Cards</a>
+            </div>
+            
+            <div class="feature-box">
+                <h3>Tour Mode</h3>
+                <p>Test your memory with a random sequence of cards. Try to recall the translation before flipping.</p>
+                <a href="{% url 'tour_mode' %}" class="btn">Start Tour</a>
+            </div>
+            
+            <div class="feature-box">
+                <h3>Canvas Mode</h3>
+                <p>Organize your cards spatially on an infinite canvas. Group related words together for better memory association.</p>
+                <a href="{% url 'canvas_mode' %}" class="btn">Open Canvas</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

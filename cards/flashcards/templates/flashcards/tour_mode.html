@@ -1,0 +1,128 @@
+{% extends 'flashcards/base.html' %}
+
+{% block title %}Tour Mode - Language Cards{% endblock %}
+
+{% block content %}
+<div class="tour-container">
+    <h2>Tour Mode</h2>
+    
+    {% if cards %}
+        <div class="tour-controls">
+            <button id="prevCard" class="btn">Previous</button>
+            <button id="flipCard" class="btn">Flip Card</button>
+            <button id="nextCard" class="btn">Next</button>
+        </div>
+        
+        <div class="tour-progress">
+            <span id="currentCard">1</span> / <span id="totalCards">{{ cards|length }}</span>
+        </div>
+        
+        <div class="tour-cards" id="cardDeck">
+            {% for card in cards %}
+                <div class="tour-card {% if forloop.first %}active{% endif %}" data-index="{{ forloop.counter0 }}">
+                    <div class="card-content">
+                        <div class="card-front">
+                            <h3>{{ card.original_word }}</h3>
+                        </div>
+                        <div class="card-back">
+                            <p>{{ card.translation }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <div class="tour-info">
+            <p>Click the card or use the "Flip Card" button to reveal the translation.</p>
+            <p>Use arrow keys (← →) to navigate between cards.</p>
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <p>You haven't added any cards yet.</p>
+            <a href="{% url 'add_card' %}" class="btn">Add Your First Card</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.tour-card');
+        const totalCards = cards.length;
+        
+        if (totalCards === 0) return;
+        
+        const currentCardElement = document.getElementById('currentCard');
+        const totalCardsElement = document.getElementById('totalCards');
+        const nextBtn = document.getElementById('nextCard');
+        const prevBtn = document.getElementById('prevBtn');
+        const flipBtn = document.getElementById('flipCard');
+        
+        let currentIndex = 0;
+        
+        // Update displays
+        function updateDisplay() {
+            cards.forEach((card, index) => {
+                card.classList.toggle('active', index === currentIndex);
+            });
+            currentCardElement.textContent = currentIndex + 1;
+        }
+        
+        // Flip current card
+        function flipCard() {
+            const activeCard = document.querySelector('.tour-card.active');
+            if (activeCard) {
+                activeCard.classList.toggle('flipped');
+            }
+        }
+        
+        // Next card
+        function nextCard() {
+            const activeCard = document.querySelector('.tour-card.active');
+            if (activeCard) {
+                activeCard.classList.remove('flipped');
+            }
+            
+            currentIndex = (currentIndex + 1) % totalCards;
+            updateDisplay();
+        }
+        
+        // Previous card
+        function prevCard() {
+            const activeCard = document.querySelector('.tour-card.active');
+            if (activeCard) {
+                activeCard.classList.remove('flipped');
+            }
+            
+            currentIndex = (currentIndex - 1 + totalCards) % totalCards;
+            updateDisplay();
+        }
+        
+        // Event listeners
+        nextBtn.addEventListener('click', nextCard);
+        document.getElementById('prevCard').addEventListener('click', prevCard);
+        flipBtn.addEventListener('click', flipCard);
+        
+        // Allow clicking on card to flip
+        cards.forEach(card => {
+            card.addEventListener('click', function() {
+                if (card.classList.contains('active')) {
+                    card.classList.toggle('flipped');
+                }
+            });
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight') {
+                nextCard();
+            } else if (e.key === 'ArrowLeft') {
+                prevCard();
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                flipCard();
+            }
+        });
+    });
+</script>
+{% endblock %} 

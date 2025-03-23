@@ -1,0 +1,455 @@
+/* Color Palette */
+:root {
+    --primary-color: #4a6fa5;
+    --primary-dark: #3a5682;
+    --secondary-color: #f39c12;
+    --secondary-dark: #e67e22;
+    --accent-color: #16a085;
+    --light-color: #ecf0f1;
+    --dark-color: #2c3e50;
+    --card-color: #ffffff;
+    --error-color: #e74c3c;
+    --success-color: #2ecc71;
+    --gray-light: #f5f5f5;
+    --gray: #bdc3c7;
+    --gray-dark: #7f8c8d;
+}
+
+/* Global Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+    color: var(--dark-color);
+    background-color: var(--light-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+a {
+    text-decoration: none;
+    color: var(--primary-color);
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--primary-dark);
+}
+
+ul {
+    list-style: none;
+}
+
+/* Layout */
+header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.logo h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+nav ul {
+    display: flex;
+    gap: 1.5rem;
+}
+
+nav a {
+    color: white;
+    font-weight: 500;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+}
+
+nav a:hover {
+    background-color: var(--primary-dark);
+    color: white;
+}
+
+main {
+    flex: 1;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+footer {
+    background-color: var(--dark-color);
+    color: var(--light-color);
+    text-align: center;
+    padding: 1rem;
+    margin-top: auto;
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    background-color: var(--primary-color);
+    color: white;
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.btn:hover {
+    background-color: var(--primary-dark);
+    color: white;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* Home Page */
+.hero {
+    text-align: center;
+    margin: 2rem 0 4rem;
+}
+
+.hero h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.hero p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    color: var(--gray-dark);
+}
+
+.features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2rem;
+    justify-content: center;
+    margin-top: 3rem;
+}
+
+.feature-box {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    flex: 1;
+    min-width: 250px;
+    max-width: 350px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.feature-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.feature-box h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.feature-box p {
+    margin-bottom: 1.5rem;
+    color: var(--gray-dark);
+}
+
+/* Forms */
+.form-container {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.form-container h2 {
+    color: var(--primary-color);
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--dark-color);
+}
+
+.form-input, input[type="text"], input[type="email"], textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--gray);
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.form-input:focus, input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 111, 165, 0.2);
+}
+
+.card-form button {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    background-color: var(--secondary-color);
+}
+
+.card-form button:hover {
+    background-color: var(--secondary-dark);
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 1rem;
+}
+
+/* Cards List */
+.cards-container {
+    text-align: center;
+}
+
+.cards-container h2 {
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+}
+
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.card {
+    background-color: transparent;
+    height: 200px;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+.card-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card.flipped .card-content {
+    transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.card-front {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.card-back {
+    background-color: var(--secondary-color);
+    color: white;
+    transform: rotateY(180deg);
+}
+
+.card-date {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--gray-dark);
+}
+
+.empty-state {
+    background-color: white;
+    border-radius: 8px;
+    padding: 3rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state p {
+    font-size: 1.2rem;
+    color: var(--gray-dark);
+    margin-bottom: 1.5rem;
+}
+
+.action-links {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+/* Tour Mode */
+.tour-container {
+    text-align: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.tour-container h2 {
+    color: var(--primary-color);
+    margin-bottom: 2rem;
+}
+
+.tour-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.tour-progress {
+    margin-bottom: 2rem;
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--gray-dark);
+}
+
+.tour-cards {
+    height: 300px;
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.tour-card {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.tour-card.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.tour-info {
+    color: var(--gray-dark);
+    margin-top: 2rem;
+}
+
+/* Canvas Mode */
+.canvas-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 200px);
+    position: relative;
+    overflow: hidden;
+}
+
+.canvas-controls {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+.infinite-canvas {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background-color: var(--gray-light);
+    transform-origin: center;
+    transition: transform 0.05s ease;
+}
+
+.canvas-card {
+    position: absolute;
+    width: 250px;
+    height: 180px;
+    cursor: grab;
+    z-index: 1;
+}
+
+.canvas-card:active {
+    cursor: grabbing;
+}
+
+.canvas-card.flipped .card-content {
+    transform: rotateY(180deg);
+}
+
+.canvas-info {
+    padding: 1rem;
+    text-align: center;
+    color: var(--gray-dark);
+    background-color: white;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        padding: 1rem;
+    }
+    
+    .logo {
+        margin-bottom: 1rem;
+    }
+    
+    nav ul {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .feature-box {
+        min-width: 100%;
+    }
+    
+    .cards-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tour-controls {
+        flex-wrap: wrap;
+    }
+    
+    .canvas-container {
+        height: calc(100vh - 250px);
+    }
+} 

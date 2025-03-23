@@ -90,6 +90,12 @@
     data-y="{{ canvas_position.translate_y|default:'0' }}"
     style="display: none;">
 </div>
+
+<!-- Debug info for troubleshooting -->
+<div class="canvas-debug" style="display: none; position: fixed; bottom: 10px; left: 10px; padding: 10px; background: rgba(0,0,0,0.7); color: white; z-index: 9999; font-size: 12px;">
+    <p>Position: <span id="debug-position">x: 0, y: 0, scale: 1</span></p>
+    <label><input type="checkbox" id="debug-toggle"> Show Debug Info</label>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -104,74 +110,127 @@
         const resetViewBtn = document.getElementById('resetView');
         const saveViewBtn = document.getElementById('saveView');
         
+        // Debug elements
+        const debugPosition = document.getElementById('debug-position');
+        const debugToggle = document.getElementById('debug-toggle');
+        const debugPanel = document.querySelector('.canvas-debug');
+        
+        // Toggle debug panel visibility
+        debugToggle.addEventListener('change', function() {
+            debugPanel.style.display = this.checked ? 'block' : 'none';
+        });
+        
         // Get position data from hidden element
         const canvasData = document.getElementById('canvas-data');
         
         // Initialize position and scale variables
-        let scale = canvasData ? parseFloat(canvasData.dataset.scale) || 1 : 1;
-        let translatePos = { 
-            x: canvasData ? parseInt(canvasData.dataset.x) || 0 : 0, 
-            y: canvasData ? parseInt(canvasData.dataset.y) || 0 : 0 
-        };
+        let scale = 1;
+        let translatePos = { x: 0, y: 0 };
+        
+        // Safely parse values from data attributes with fallbacks
+        try {
+            if (canvasData) {
+                scale = parseFloat(canvasData.dataset.scale);
+                if (isNaN(scale) || scale <= 0) scale = 1;
+                
+                translatePos.x = parseInt(canvasData.dataset.x);
+                if (isNaN(translatePos.x)) translatePos.x = 0;
+                
+                translatePos.y = parseInt(canvasData.dataset.y);
+                if (isNaN(translatePos.y)) translatePos.y = 0;
+            }
+        } catch (error) {
+            console.error('Error parsing canvas position:', error);
+            scale = 1;
+            translatePos = { x: 0, y: 0 };
+        }
+        
+        // Update debug info
+        function updateDebugInfo() {
+            debugPosition.textContent = `x: ${Math.round(translatePos.x)}, y: ${Math.round(translatePos.y)}, scale: ${scale.toFixed(2)}`;
+        }
         
         let panning = false;
         let startPoint = { x: 0, y: 0 };
         let endPoint = { x: 0, y: 0 };
         
-        // Apply saved position immediately if available
-        if (translatePos.x !== 0 || translatePos.y !== 0 || scale !== 1) {
+        // Apply saved position immediately if available and reasonable
+        if (Math.abs(translatePos.x) < 10000 && Math.abs(translatePos.y) < 10000 && scale >= 0.1 && scale <= 5) {
             canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+            updateDebugInfo();
         } else {
-            // Otherwise center the canvas
+            // Reset if values are unreasonable
+            scale = 1;
+            translatePos = { x: 0, y: 0 };
             centerCanvas();
         }
         
         // Initialize card positions from database or center them if new
         cards.forEach(card => {
-            const cardX = parseInt(card.dataset.x) || 0;
-            const cardY = parseInt(card.dataset.y) || 0;
-            
-            // Apply initial position from data attributes
-            card.style.transform = `translate(${cardX}px, ${cardY}px)`;
-            
-            // If the card doesn't have a stored position, place it randomly near center
-            if (cardX === 0 && cardY === 0) {
-                const randomX = Math.floor(Math.random() * 400) - 200;
-                const randomY = Math.floor(Math.random() * 400) - 200;
-                card.style.transform = `translate(${randomX}px, ${randomY}px)`;
+            try {
+                const cardX = parseInt(card.dataset.x) || 0;
+                const cardY = parseInt(card.dataset.y) || 0;
+                
+                // Validate position is reasonable
+                if (Math.abs(cardX) > 10000 || Math.abs(cardY) > 10000) {
+                    throw new Error('Card position out of reasonable bounds');
+                }
+                
+                // Apply initial position from data attributes
+                card.style.transform = `translate(${cardX}px, ${cardY}px)`;
+                
+                // If the card doesn't have a stored position, place it randomly near center
+                if (cardX === 0 && cardY === 0) {
+                    const randomX = Math.floor(Math.random() * 400) - 200;
+                    const randomY = Math.floor(Math.random() * 400) - 200;
+                    card.style.transform = `translate(${randomX}px, ${randomY}px)`;
+                }
+                
+                // Make cards draggable
+                makeDraggable(card);
+                
+                // Make cards flippable with double-click
+                card.addEventListener('dblclick', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.toggle('flipped');
+                });
+            } catch (error) {
+                console.error('Error initializing card:', error);
+                card.style.transform = 'translate(0px, 0px)';
+                makeDraggable(card);
             }
-            
-            // Make cards draggable
-            makeDraggable(card);
-            
-            // Make cards flippable with double-click
-            card.addEventListener('dblclick', function() {
-                this.classList.toggle('flipped');
-            });
         });
         
         // Center the canvas on initial load
         function centerCanvas() {
-            // Get the container dimensions
-            const container = document.querySelector('.canvas-container');
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
-            
-            // Get the canvas dimensions
-            const canvasWidth = canvas.offsetWidth;
-            const canvasHeight = canvas.offsetHeight;
-            
-            // Center the canvas in the container with negative coordinates (move left/up)
-            translatePos = { 
-                x: (containerWidth - canvasWidth * scale) / 2,
-                y: (containerHeight - canvasHeight * scale) / 2
-            };
-            
-            // Apply the centering
-            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
-            
-            // Save the new position
-            saveCanvasPosition();
+            try {
+                // Get the container dimensions
+                const container = document.querySelector('.canvas-container');
+                if (!container) return;
+                
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+                
+                // Get the canvas dimensions
+                const canvasWidth = canvas.offsetWidth;
+                const canvasHeight = canvas.offsetHeight;
+                
+                // Center the canvas in the container with negative coordinates (move left/up)
+                translatePos = { 
+                    x: (containerWidth - canvasWidth * scale) / 2,
+                    y: (containerHeight - canvasHeight * scale) / 2
+                };
+                
+                // Apply the centering
+                canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+                updateDebugInfo();
+                
+                // Save the new position
+                saveCanvasPosition();
+            } catch (error) {
+                console.error('Error centering canvas:', error);
+            }
         }
         
         // Debounce function to limit how often a function is called
@@ -189,56 +248,69 @@
         
         // Save canvas position to user profile
         const saveCanvasPosition = debounce(function() {
-            fetch('{% url "update_canvas_position" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': getCookie('csrftoken')
-                },
-                body: JSON.stringify({
-                    translate_x: Math.round(translatePos.x),
-                    translate_y: Math.round(translatePos.y),
-                    scale: parseFloat(scale.toFixed(2))
+            try {
+                fetch('{% url "update_canvas_position" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        translate_x: Math.round(translatePos.x),
+                        translate_y: Math.round(translatePos.y),
+                        scale: parseFloat(scale.toFixed(2))
+                    })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status !== 'success') {
-                    console.error('Failed to save canvas position:', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error saving canvas position:', error);
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('Failed to save canvas position:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving canvas position:', error);
+                });
+                
+                updateDebugInfo();
+            } catch (error) {
+                console.error('Error in saveCanvasPosition:', error);
+            }
         }, 1000); // Debounce by 1 second
         
         // Zoom functionality
         function setCanvasScale(newScale) {
-            // Get the container dimensions
-            const container = document.querySelector('.canvas-container');
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
-            
-            // Calculate zoom center (relative to the translatePos)
-            const zoomCenterX = containerWidth / 2 - translatePos.x;
-            const zoomCenterY = containerHeight / 2 - translatePos.y;
-            
-            // Store the old scale
-            const oldScale = scale;
-            
-            // Set the new scale with limits
-            scale = Math.max(0.1, Math.min(5, newScale));
-            
-            // Calculate new position to zoom toward the center of the screen
-            const scaleFactor = scale / oldScale;
-            translatePos.x = translatePos.x - zoomCenterX * (scaleFactor - 1);
-            translatePos.y = translatePos.y - zoomCenterY * (scaleFactor - 1);
-            
-            // Apply the transformation
-            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
-            
-            // Save the new position and scale
-            saveCanvasPosition();
+            try {
+                // Get the container dimensions
+                const container = document.querySelector('.canvas-container');
+                if (!container) return;
+                
+                const containerWidth = container.clientWidth;
+                const containerHeight = container.clientHeight;
+                
+                // Calculate zoom center (relative to the translatePos)
+                const zoomCenterX = containerWidth / 2 - translatePos.x;
+                const zoomCenterY = containerHeight / 2 - translatePos.y;
+                
+                // Store the old scale
+                const oldScale = scale;
+                
+                // Set the new scale with limits
+                scale = Math.max(0.1, Math.min(5, newScale));
+                
+                // Calculate new position to zoom toward the center of the screen
+                const scaleFactor = scale / oldScale;
+                translatePos.x = translatePos.x - zoomCenterX * (scaleFactor - 1);
+                translatePos.y = translatePos.y - zoomCenterY * (scaleFactor - 1);
+                
+                // Apply the transformation
+                canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+                updateDebugInfo();
+                
+                // Save the new position and scale
+                saveCanvasPosition();
+            } catch (error) {
+                console.error('Error setting canvas scale:', error);
+            }
         }
         
         zoomInBtn.addEventListener('click', function() {
@@ -256,6 +328,7 @@
         
         saveViewBtn.addEventListener('click', function() {
             saveCanvasPosition();
+            
             // Show temporary feedback
             const feedback = document.createElement('div');
             feedback.className = 'save-feedback';
@@ -273,49 +346,60 @@
             
             // Remove feedback after 2 seconds
             setTimeout(() => {
-                document.body.removeChild(feedback);
+                if (document.body.contains(feedback)) {
+                    document.body.removeChild(feedback);
+                }
             }, 2000);
         });
         
         // Mouse wheel zoom
         canvas.addEventListener('wheel', function(e) {
-            e.preventDefault();
-            
-            // Calculate zoom center (mouse position relative to canvas)
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = e.clientX - rect.left - translatePos.x;
-            const mouseY = e.clientY - rect.top - translatePos.y;
-            
-            // Store the old scale
-            const oldScale = scale;
-            
-            // Calculate the new scale
-            const delta = e.deltaY > 0 ? -0.1 : 0.1;
-            scale = Math.max(0.1, Math.min(5, scale + delta));
-            
-            // Calculate new position to zoom toward mouse
-            const scaleFactor = scale / oldScale;
-            translatePos.x = translatePos.x - mouseX * (scaleFactor - 1);
-            translatePos.y = translatePos.y - mouseY * (scaleFactor - 1);
-            
-            // Apply the transformation
-            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
-            
-            // Save position after zoom (debounced)
-            saveCanvasPosition();
+            try {
+                e.preventDefault();
+                
+                // Calculate zoom center (mouse position relative to canvas)
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left - translatePos.x;
+                const mouseY = e.clientY - rect.top - translatePos.y;
+                
+                // Store the old scale
+                const oldScale = scale;
+                
+                // Calculate the new scale
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                scale = Math.max(0.1, Math.min(5, scale + delta));
+                
+                // Calculate new position to zoom toward mouse
+                const scaleFactor = scale / oldScale;
+                translatePos.x = translatePos.x - mouseX * (scaleFactor - 1);
+                translatePos.y = translatePos.y - mouseY * (scaleFactor - 1);
+                
+                // Apply the transformation
+                canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+                updateDebugInfo();
+                
+                // Save position after zoom (debounced)
+                saveCanvasPosition();
+            } catch (error) {
+                console.error('Error handling wheel event:', error);
+            }
         });
         
         // Panning functionality with right-click or middle-click or left-click on empty space
         document.querySelector('.canvas-container').addEventListener('mousedown', function(e) {
-            // Only initiate panning if:
-            // 1. Using right-click (button 2) or middle-click (button 1), OR
-            // 2. Left-click (button 0) directly on the canvas container (not on a card)
-            const isClickOnCard = e.target.closest('.canvas-card') !== null;
-            
-            if (e.button === 2 || e.button === 1 || (e.button === 0 && !isClickOnCard)) {
-                e.preventDefault();
-                panning = true;
-                startPoint = { x: e.clientX, y: e.clientY };
+            try {
+                // Only initiate panning if:
+                // 1. Using right-click (button 2) or middle-click (button 1), OR
+                // 2. Left-click (button 0) directly on the canvas container (not on a card)
+                const isClickOnCard = e.target.closest('.canvas-card') !== null;
+                
+                if (e.button === 2 || e.button === 1 || (e.button === 0 && !isClickOnCard)) {
+                    e.preventDefault();
+                    panning = true;
+                    startPoint = { x: e.clientX, y: e.clientY };
+                }
+            } catch (error) {
+                console.error('Error in mousedown event:', error);
             }
         });
         
@@ -325,23 +409,34 @@
         });
         
         document.addEventListener('mousemove', function(e) {
-            if (!panning) return;
-            e.preventDefault();
-            
-            endPoint = { x: e.clientX, y: e.clientY };
-            translatePos = {
-                x: translatePos.x + (endPoint.x - startPoint.x),
-                y: translatePos.y + (endPoint.y - startPoint.y)
-            };
-            
-            startPoint = { x: e.clientX, y: e.clientY };
-            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+            try {
+                if (!panning) return;
+                e.preventDefault();
+                
+                endPoint = { x: e.clientX, y: e.clientY };
+                translatePos = {
+                    x: translatePos.x + (endPoint.x - startPoint.x),
+                    y: translatePos.y + (endPoint.y - startPoint.y)
+                };
+                
+                startPoint = { x: e.clientX, y: e.clientY };
+                canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+                updateDebugInfo();
+            } catch (error) {
+                console.error('Error in mousemove event:', error);
+                panning = false;
+            }
         });
         
         document.addEventListener('mouseup', function() {
-            if (panning) {
-                // Save position after panning
-                saveCanvasPosition();
+            try {
+                if (panning) {
+                    // Save position after panning
+                    saveCanvasPosition();
+                    panning = false;
+                }
+            } catch (error) {
+                console.error('Error in mouseup event:', error);
                 panning = false;
             }
         });
@@ -354,121 +449,189 @@
             element.addEventListener('mousedown', dragMouseDown);
             
             function dragMouseDown(e) {
-                // Only allow left-click for dragging
-                if (e.button !== 0) return;
-                e.preventDefault();
-                e.stopPropagation(); // Stop event propagation to prevent canvas panning
-                isDragging = true;
-                
-                // Get the initial mouse cursor position
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                
-                document.addEventListener('mousemove', elementDrag);
-                document.addEventListener('mouseup', closeDragElement);
+                try {
+                    // Only allow left-click for dragging
+                    if (e.button !== 0) return;
+                    e.preventDefault();
+                    e.stopPropagation(); // Stop event propagation to prevent canvas panning
+                    isDragging = true;
+                    
+                    // Get the initial mouse cursor position
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    
+                    document.addEventListener('mousemove', elementDrag);
+                    document.addEventListener('mouseup', closeDragElement);
+                } catch (error) {
+                    console.error('Error in dragMouseDown:', error);
+                    isDragging = false;
+                }
             }
             
             function elementDrag(e) {
-                if (!isDragging) return;
-                e.preventDefault();
-                
-                // Calculate the new cursor position
-                pos1 = pos3 - e.clientX;
-                pos2 = pos4 - e.clientY;
-                pos3 = e.clientX;
-                pos4 = e.clientY;
-                
-                // Adjust for canvas scale
-                const adjustedPos1 = pos1 / scale;
-                const adjustedPos2 = pos2 / scale;
-                
-                // Get current transform or default to 0,0
-                let currentX = 0;
-                let currentY = 0;
-                
-                const transform = window.getComputedStyle(element).transform;
-                if (transform && transform !== 'none') {
-                    const matrix = new DOMMatrix(transform);
-                    currentX = matrix.e;
-                    currentY = matrix.f;
+                try {
+                    if (!isDragging) return;
+                    e.preventDefault();
+                    
+                    // Calculate the new cursor position
+                    pos1 = pos3 - e.clientX;
+                    pos2 = pos4 - e.clientY;
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    
+                    // Adjust for canvas scale
+                    const adjustedPos1 = pos1 / scale;
+                    const adjustedPos2 = pos2 / scale;
+                    
+                    // Get current transform or default to 0,0
+                    let currentX = 0;
+                    let currentY = 0;
+                    
+                    const transform = window.getComputedStyle(element).transform;
+                    if (transform && transform !== 'none') {
+                        // Use try/catch in case DOMMatrix is not supported or fails
+                        try {
+                            const matrix = new DOMMatrix(transform);
+                            currentX = matrix.e;
+                            currentY = matrix.f;
+                        } catch (err) {
+                            // Fallback for browsers not supporting DOMMatrix
+                            const values = transform.match(/matrix.*\((.+)\)/);
+                            if (values && values[1]) {
+                                const parts = values[1].split(/,\s*/);
+                                currentX = parseFloat(parts[4] || 0);
+                                currentY = parseFloat(parts[5] || 0);
+                            }
+                        }
+                    }
+                    
+                    // Set the element's new position
+                    const newX = currentX - adjustedPos1;
+                    const newY = currentY - adjustedPos2;
+                    
+                    // Check if the new position is within reasonable bounds
+                    if (Math.abs(newX) < 10000 && Math.abs(newY) < 10000) {
+                        element.style.transform = `translate(${newX}px, ${newY}px)`;
+                    }
+                } catch (error) {
+                    console.error('Error in elementDrag:', error);
+                    isDragging = false;
+                    document.removeEventListener('mousemove', elementDrag);
+                    document.removeEventListener('mouseup', closeDragElement);
                 }
-                
-                // Set the element's new position
-                const newX = currentX - adjustedPos1;
-                const newY = currentY - adjustedPos2;
-                
-                element.style.transform = `translate(${newX}px, ${newY}px)`;
             }
             
             function closeDragElement() {
-                // Stop moving when mouse button is released
-                document.removeEventListener('mousemove', elementDrag);
-                document.removeEventListener('mouseup', closeDragElement);
-                
-                if (isDragging) {
-                    // Save position to database
-                    const transform = window.getComputedStyle(element).transform;
-                    let posX = 0;
-                    let posY = 0;
+                try {
+                    // Stop moving when mouse button is released
+                    document.removeEventListener('mousemove', elementDrag);
+                    document.removeEventListener('mouseup', closeDragElement);
                     
-                    if (transform && transform !== 'none') {
-                        const matrix = new DOMMatrix(transform);
-                        posX = matrix.e;
-                        posY = matrix.f;
+                    if (isDragging) {
+                        // Save position to database
+                        let posX = 0;
+                        let posY = 0;
+                        
+                        const transform = window.getComputedStyle(element).transform;
+                        if (transform && transform !== 'none') {
+                            try {
+                                const matrix = new DOMMatrix(transform);
+                                posX = matrix.e;
+                                posY = matrix.f;
+                            } catch (err) {
+                                // Fallback for browsers not supporting DOMMatrix
+                                const values = transform.match(/matrix.*\((.+)\)/);
+                                if (values && values[1]) {
+                                    const parts = values[1].split(/,\s*/);
+                                    posX = parseFloat(parts[4] || 0);
+                                    posY = parseFloat(parts[5] || 0);
+                                }
+                            }
+                        }
+                        
+                        const cardId = element.dataset.id;
+                        saveCardPosition(cardId, posX, posY);
                     }
                     
-                    const cardId = element.dataset.id;
-                    saveCardPosition(cardId, posX, posY);
+                    isDragging = false;
+                } catch (error) {
+                    console.error('Error in closeDragElement:', error);
+                    isDragging = false;
                 }
-                
-                isDragging = false;
             }
         }
         
         // Save card position to the database
         function saveCardPosition(cardId, x, y) {
-            fetch('{% url "update_card_position" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    id: cardId,
-                    x: Math.round(x),
-                    y: Math.round(y)
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status !== 'success') {
-                    console.error('Failed to save card position');
+            try {
+                if (!cardId) return;
+                
+                // Validate position values
+                if (isNaN(x) || isNaN(y) || Math.abs(x) > 10000 || Math.abs(y) > 10000) {
+                    console.error('Invalid position values:', x, y);
+                    return;
                 }
-            })
-            .catch(error => {
-                console.error('Error saving card position:', error);
-            });
+                
+                fetch('{% url "update_card_position" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id: cardId,
+                        x: Math.round(x),
+                        y: Math.round(y)
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status !== 'success') {
+                        console.error('Failed to save card position:', data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving card position:', error);
+                });
+            } catch (error) {
+                console.error('Error in saveCardPosition:', error);
+            }
         }
         
         // Get CSRF cookie for POST requests
         function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
+            try {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
                     }
                 }
+                return cookieValue;
+            } catch (error) {
+                console.error('Error getting cookie:', error);
+                return null;
             }
-            return cookieValue;
         }
         
         // Handle window resize
         window.addEventListener('resize', function() {
             // Recenter the canvas when window is resized
             centerCanvas();
+        });
+        
+        // Add keyboard shortcuts for debug panel
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Shift+D to toggle debug panel
+            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+                debugToggle.checked = debugPanel.style.display === 'block';
+                e.preventDefault();
+            }
         });
     });
 </script>

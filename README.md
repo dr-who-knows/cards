@@ -19,8 +19,8 @@ A Django application for memorizing foreign language vocabulary.
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/language-cards.git
-   cd language-cards
+   git clone https://github.com/dr-who-knows/cards.git
+   cd cards
    ```
 
 2. Install dependencies:
@@ -50,6 +50,7 @@ A Django application for memorizing foreign language vocabulary.
 
 1. Build and run with Docker Compose:
    ```
+   docker-compose build
    docker-compose up -d
    ```
 

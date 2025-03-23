@@ -347,6 +347,9 @@ footer {
     text-align: center;
     max-width: 800px;
     margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 80vh;
 }
 
 .tour-container h2 {
@@ -358,7 +361,10 @@ footer {
     display: flex;
     justify-content: center;
     gap: 1rem;
+    margin-top: 2rem;
     margin-bottom: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--gray-light);
 }
 
 .tour-progress {
@@ -372,6 +378,7 @@ footer {
     height: 300px;
     position: relative;
     margin-bottom: 2rem;
+    flex-grow: 1;
 }
 
 .tour-card {
@@ -392,7 +399,7 @@ footer {
 
 .tour-info {
     color: var(--gray-dark);
-    margin-top: 2rem;
+    margin-top: 1rem;
 }
 
 /* Canvas Mode - Updated for fullscreen */

@@ -7,12 +7,6 @@
     <h2>Tour Mode</h2>
     
     {% if cards %}
-        <div class="tour-controls">
-            <button id="prevCard" class="btn">Previous</button>
-            <button id="flipCard" class="btn">Flip Card</button>
-            <button id="nextCard" class="btn">Next</button>
-        </div>
-        
         <div class="tour-progress">
             <span id="currentCard">1</span> / <span id="totalCards">{{ cards|length }}</span>
         </div>
@@ -32,8 +26,14 @@
             {% endfor %}
         </div>
         
+
+        
+        <div class="tour-controls">
+            <button id="prevCard" class="btn">Previous</button>
+            <button id="flipCard" class="btn">Flip Card</button>
+            <button id="nextCard" class="btn">Next</button>
+        </div>
         <div class="tour-info">
-            <p>Click the card or use the "Flip Card" button to reveal the translation.</p>
             <p>Use arrow keys (← →) to navigate between cards.</p>
         </div>
     {% else %}

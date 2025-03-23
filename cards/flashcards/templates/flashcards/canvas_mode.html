@@ -31,6 +31,10 @@
                 <span>↺</span>
                 <span class="icon-text">Reset</span>
             </button>
+            <button id="saveView" class="btn btn-control tooltip" data-tooltip="Save this view">
+                <span>💾</span>
+                <span class="icon-text">Save View</span>
+            </button>
         </div>
         
         <div class="sidebar-info">
@@ -39,6 +43,7 @@
             <p>• Double-click cards to flip them</p>
             <p>• Use mouse wheel to zoom</p>
             <p>• Click and drag on empty space to pan</p>
+            <p>• Your view is automatically saved</p>
         </div>
         
         {% if not cards %}
@@ -77,6 +82,14 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Hidden data to pass position values from Django to JavaScript -->
+<div id="canvas-data" 
+    data-scale="{{ canvas_position.scale|default:'1' }}"
+    data-x="{{ canvas_position.translate_x|default:'0' }}"
+    data-y="{{ canvas_position.translate_y|default:'0' }}"
+    style="display: none;">
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -89,18 +102,29 @@
         const zoomInBtn = document.getElementById('zoomIn');
         const zoomOutBtn = document.getElementById('zoomOut');
         const resetViewBtn = document.getElementById('resetView');
+        const saveViewBtn = document.getElementById('saveView');
         
-        let scale = 1;
+        // Get position data from hidden element
+        const canvasData = document.getElementById('canvas-data');
+        
+        // Initialize position and scale variables
+        let scale = canvasData ? parseFloat(canvasData.dataset.scale) || 1 : 1;
+        let translatePos = { 
+            x: canvasData ? parseInt(canvasData.dataset.x) || 0 : 0, 
+            y: canvasData ? parseInt(canvasData.dataset.y) || 0 : 0 
+        };
+        
         let panning = false;
         let startPoint = { x: 0, y: 0 };
         let endPoint = { x: 0, y: 0 };
-        let translatePos = { x: 0, y: 0 };
         
-        const containerWidth = canvas.clientWidth;
-        const containerHeight = canvas.clientHeight;
-        
-        // Initialize - center the canvas
-        centerCanvas();
+        // Apply saved position immediately if available
+        if (translatePos.x !== 0 || translatePos.y !== 0 || scale !== 1) {
+            canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+        } else {
+            // Otherwise center the canvas
+            centerCanvas();
+        }
         
         // Initialize card positions from database or center them if new
         cards.forEach(card => {
@@ -137,9 +161,6 @@
             const canvasWidth = canvas.offsetWidth;
             const canvasHeight = canvas.offsetHeight;
             
-            console.log('Container Dimensions:', containerWidth, containerHeight);
-            console.log('Canvas Dimensions:', canvasWidth, canvasHeight);
-            
             // Center the canvas in the container with negative coordinates (move left/up)
             translatePos = { 
                 x: (containerWidth - canvasWidth * scale) / 2,
@@ -148,7 +169,48 @@
             
             // Apply the centering
             canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+            
+            // Save the new position
+            saveCanvasPosition();
         }
+        
+        // Debounce function to limit how often a function is called
+        function debounce(func, wait) {
+            let timeout;
+            return function() {
+                const context = this;
+                const args = arguments;
+                clearTimeout(timeout);
+                timeout = setTimeout(function() {
+                    func.apply(context, args);
+                }, wait);
+            };
+        }
+        
+        // Save canvas position to user profile
+        const saveCanvasPosition = debounce(function() {
+            fetch('{% url "update_canvas_position" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    translate_x: Math.round(translatePos.x),
+                    translate_y: Math.round(translatePos.y),
+                    scale: parseFloat(scale.toFixed(2))
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status !== 'success') {
+                    console.error('Failed to save canvas position:', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error saving canvas position:', error);
+            });
+        }, 1000); // Debounce by 1 second
         
         // Zoom functionality
         function setCanvasScale(newScale) {
@@ -174,6 +236,9 @@
             
             // Apply the transformation
             canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+            
+            // Save the new position and scale
+            saveCanvasPosition();
         }
         
         zoomInBtn.addEventListener('click', function() {
@@ -187,6 +252,29 @@
         resetViewBtn.addEventListener('click', function() {
             scale = 1;
             centerCanvas();
+        });
+        
+        saveViewBtn.addEventListener('click', function() {
+            saveCanvasPosition();
+            // Show temporary feedback
+            const feedback = document.createElement('div');
+            feedback.className = 'save-feedback';
+            feedback.textContent = 'View saved';
+            feedback.style.position = 'fixed';
+            feedback.style.bottom = '20px';
+            feedback.style.left = '50%';
+            feedback.style.transform = 'translateX(-50%)';
+            feedback.style.padding = '10px 20px';
+            feedback.style.backgroundColor = 'rgba(46, 204, 113, 0.8)';
+            feedback.style.color = 'white';
+            feedback.style.borderRadius = '4px';
+            feedback.style.zIndex = '1000';
+            document.body.appendChild(feedback);
+            
+            // Remove feedback after 2 seconds
+            setTimeout(() => {
+                document.body.removeChild(feedback);
+            }, 2000);
         });
         
         // Mouse wheel zoom
@@ -212,6 +300,9 @@
             
             // Apply the transformation
             canvas.style.transform = `translate(${translatePos.x}px, ${translatePos.y}px) scale(${scale})`;
+            
+            // Save position after zoom (debounced)
+            saveCanvasPosition();
         });
         
         // Panning functionality with right-click or middle-click or left-click on empty space
@@ -248,7 +339,11 @@
         });
         
         document.addEventListener('mouseup', function() {
-            panning = false;
+            if (panning) {
+                // Save position after panning
+                saveCanvasPosition();
+                panning = false;
+            }
         });
         
         // Make an element draggable
@@ -352,6 +447,22 @@
             .catch(error => {
                 console.error('Error saving card position:', error);
             });
+        }
+        
+        // Get CSRF cookie for POST requests
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
         }
         
         // Handle window resize

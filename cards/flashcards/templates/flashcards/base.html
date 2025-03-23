@@ -16,14 +16,36 @@
         <nav>
             <ul>
                 <li><a href="{% url 'home' %}">Home</a></li>
-                <li><a href="{% url 'add_card' %}">Add Card</a></li>
-                <li><a href="{% url 'cards_list' %}">My Cards</a></li>
-                <li><a href="{% url 'tour_mode' %}">Tour Mode</a></li>
-                <li><a href="{% url 'canvas_mode' %}">Canvas Mode</a></li>
+                {% if user.is_authenticated %}
+                    <li><a href="{% url 'add_card' %}">Add Card</a></li>
+                    <li><a href="{% url 'cards_list' %}">My Cards</a></li>
+                    <li><a href="{% url 'tour_mode' %}">Tour Mode</a></li>
+                    <li><a href="{% url 'canvas_mode' %}">Canvas Mode</a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle">{{ user.username }}</a>
+                        <div class="dropdown-menu">
+                            <a href="{% url 'profile' %}">Profile</a>
+                            <a href="{% url 'logout' %}">Logout</a>
+                        </div>
+                    </li>
+                {% else %}
+                    <li><a href="{% url 'login' %}">Login</a></li>
+                    <li><a href="{% url 'register' %}">Register</a></li>
+                {% endif %}
             </ul>
         </nav>
     </header>
     {% endblock %}
+    
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+            <div class="message {{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    {% endif %}
     
     <main>
         {% block content %}{% endblock %}

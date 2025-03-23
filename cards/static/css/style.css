@@ -279,6 +279,19 @@ footer {
     transform: rotateY(180deg);
 }
 
+/* Tour Card - make it consistent with .card */
+.tour-card {
+    background-color: transparent;
+    height: 200px;
+    perspective: 1000px;
+    cursor: pointer;
+}
+
+/* Add flip effect for tour-card */
+.tour-card.flipped .card-content {
+    transform: rotateY(180deg);
+}
+
 .card-front, .card-back {
     position: absolute;
     width: 100%;

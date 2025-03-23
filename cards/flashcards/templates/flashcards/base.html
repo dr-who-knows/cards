@@ -21,13 +21,7 @@
                     <li><a href="{% url 'cards_list' %}">My Cards</a></li>
                     <li><a href="{% url 'tour_mode' %}">Tour Mode</a></li>
                     <li><a href="{% url 'canvas_mode' %}">Canvas Mode</a></li>
-                    <li class="dropdown">
-                        <a href="#" class="dropdown-toggle">{{ user.username }}</a>
-                        <div class="dropdown-menu">
-                            <a href="{% url 'profile' %}">Profile</a>
-                            <a href="{% url 'logout' %}">Logout</a>
-                        </div>
-                    </li>
+                    <li><a href="{% url 'profile' %}" class="nav-profile">{{ user.username }}</a></li>
                 {% else %}
                     <li><a href="{% url 'login' %}">Login</a></li>
                     <li><a href="{% url 'register' %}">Register</a></li>

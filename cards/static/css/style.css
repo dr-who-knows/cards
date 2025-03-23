@@ -844,6 +844,21 @@ footer {
     color: var(--dark-color);
 }
 
+.profile-actions {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--gray-light);
+}
+
+.btn-logout {
+    background-color: var(--error-color);
+    transition: background-color 0.3s ease;
+}
+
+.btn-logout:hover {
+    background-color: #c0392b;
+}
+
 /* Dropdown Menu */
 .dropdown {
     position: relative;
@@ -891,4 +906,52 @@ footer {
 .dropdown-menu a:hover {
     background-color: var(--gray-light);
     color: var(--primary-color);
+}
+
+/* Navigation elements */
+.nav-profile {
+    background-color: var(--secondary-color);
+    color: white !important;
+    border-radius: 20px;
+    padding: 0.5rem 1rem !important;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.nav-profile:hover {
+    background-color: var(--secondary-dark);
+}
+
+/* Home page auth CTA */
+.auth-cta {
+    color: var(--dark-color);
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    margin: 2rem 0;
+}
+
+.auth-cta p {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.auth-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.auth-buttons .btn {
+    padding: 0.75rem 2rem;
+    font-size: 1.1rem;
+    min-width: 120px;
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--secondary-dark);
 } 

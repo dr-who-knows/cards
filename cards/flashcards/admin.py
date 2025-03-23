@@ -2,9 +2,9 @@ from django.contrib import admin
 from .models import Card, UserProfile
 
 class CardAdmin(admin.ModelAdmin):
-    list_display = ('original_word', 'translation', 'date_added')
-    search_fields = ('original_word', 'translation')
-    list_filter = ('date_added',)
+    list_display = ('original_word', 'translation', 'user', 'date_added')
+    search_fields = ('original_word', 'translation', 'user__username')
+    list_filter = ('date_added', 'user')
     ordering = ('-date_added',)
 
 class UserProfileAdmin(admin.ModelAdmin):

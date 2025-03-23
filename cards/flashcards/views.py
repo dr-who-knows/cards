@@ -58,7 +58,7 @@ def logout_view(request):
 @login_required
 def profile_view(request):
     # Get card count for the user stats
-    card_count = Card.objects.count()
+    card_count = Card.objects.filter(user=request.user).count()
     
     context = {
         'card_count': card_count
@@ -71,7 +71,12 @@ def add_card(request):
     if request.method == 'POST':
         form = CardForm(request.POST)
         if form.is_valid():
-            form.save()
+            # Save the form but don't commit to the database yet
+            card = form.save(commit=False)
+            # Set the user to the current user
+            card.user = request.user
+            # Now save to the database
+            card.save()
             return redirect('cards_list')
     else:
         form = CardForm()
@@ -80,12 +85,12 @@ def add_card(request):
 
 @login_required
 def cards_list(request):
-    cards = Card.objects.all()
+    cards = Card.objects.filter(user=request.user)
     return render(request, 'flashcards/cards_list.html', {'cards': cards})
 
 @login_required
 def tour_mode(request):
-    cards = list(Card.objects.all())
+    cards = list(Card.objects.filter(user=request.user))
     # Shuffle the cards for random order
     if cards:
         random.shuffle(cards)
@@ -93,7 +98,7 @@ def tour_mode(request):
 
 @login_required
 def canvas_mode(request):
-    cards = Card.objects.all()
+    cards = Card.objects.filter(user=request.user)
     canvas_position = {}
     
     # If user is authenticated, get their canvas position settings
@@ -115,6 +120,7 @@ def canvas_mode(request):
     })
 
 @csrf_exempt
+@login_required
 def update_card_position(request):
     if request.method == 'POST':
         data = json.loads(request.body)
@@ -123,13 +129,14 @@ def update_card_position(request):
         y_pos = data.get('y')
         
         try:
-            card = Card.objects.get(id=card_id)
+            # Only allow updating cards that belong to the current user
+            card = Card.objects.get(id=card_id, user=request.user)
             card.x_position = x_pos
             card.y_position = y_pos
             card.save()
             return JsonResponse({'status': 'success'})
         except Card.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Card not found'})
+            return JsonResponse({'status': 'error', 'message': 'Card not found or not authorized'})
             
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
     
